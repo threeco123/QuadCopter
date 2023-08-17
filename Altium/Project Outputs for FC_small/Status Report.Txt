@@ -1,0 +1,12 @@
+Output: Gerber Files
+Type  : Gerber
+From  : Variant [[No Variations]] of Project [FC_small.PrjPcb]
+   Generated File[PCB_FC_small.RUL]
+   Generated File[PCB_FC_small.EXTREP]
+   Generated File[PCB_FC_small.REP]
+
+
+Files Generated   : 3
+Documents Printed : 0
+
+Finished Output Generation At 13:52:01 On 2014-08-05
