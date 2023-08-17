@@ -1,0 +1,266 @@
+function varargout = GUI(varargin)
+% GUI MATLAB code for GUI.fig
+%      GUI, by itself, creates a new GUI or raises the existing
+%      singleton*.
+%
+%      H = GUI returns the handle to a new GUI or the handle to
+%      the existing singleton*.
+%
+%      GUI('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in GUI.M with the given input arguments.
+%
+%      GUI('Property','Value',...) creates a new GUI or raises the
+%      existing singleton*.  Starting from the left, property value pairs are
+%      applied to the GUI before GUI_OpeningFcn gets called.  An
+%      unrecognized property name or invalid value makes property application
+%      stopButton.  All inputs are passed to GUI_OpeningFcn via varargin.
+%
+%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
+%      instance to run (singleton)".
+%
+% See also: GUIDE, GUIDATA, GUIHANDLES
+
+% Edit the above text to modify the response to help GUI
+
+% Last Modified by GUIDE v2.5 22-Aug-2014 20:23:09
+
+% Begin initialization code - DO NOT EDIT
+gui_Singleton = 1;
+gui_State = struct('gui_Name',       mfilename, ...
+                   'gui_Singleton',  gui_Singleton, ...
+                   'gui_OpeningFcn', @GUI_OpeningFcn, ...
+                   'gui_OutputFcn',  @GUI_OutputFcn, ...
+                   'gui_LayoutFcn',  [] , ...
+                   'gui_Callback',   []);
+if nargin && ischar(varargin{1})
+    gui_State.gui_Callback = str2func(varargin{1});
+end
+
+if nargout
+    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
+else
+    gui_mainfcn(gui_State, varargin{:});
+end
+% End initialization code - DO NOT EDIT
+
+
+% --- Executes just before GUI is made visible.
+function GUI_OpeningFcn(hObject, eventdata, handles, varargin)
+% This function has no output args, see OutputFcn.
+% hObject    handle to figure
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% varargin   command line arguments to GUI (see VARARGIN)
+
+% Choose default command line output for GUI
+handles.output = hObject;
+
+% Update handles structure
+handles.comPort = 'COM11';
+handles.running = true;
+handles.kp = 0;
+handles.ki = 0;
+handles.kd= 0;
+guidata(hObject, handles);
+
+% UIWAIT makes GUI wait for user response (see UIRESUME)
+% uiwait(handles.figure1);
+
+
+% --- Outputs from this function are returned to the command line.
+function varargout = GUI_OutputFcn(hObject, eventdata, handles) 
+% varargout  cell array for returning output args (see VARARGOUT);
+% hObject    handle to figure
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Get default command line output from handles structure
+varargout{1} = handles.output;
+
+
+% --- Executes on button press in stopButton.
+function stopButton_Callback(hObject, eventdata, handles)
+% hObject    handle to stopButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+delete(instrfindall)
+handles.running = false;
+guidata(hObject, handles);
+
+% --- Executes on button press in startButton.
+function startButton_Callback(hObject, eventdata, handles)
+% hObject    handle to startButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+axes(handles.axes1);
+delete(instrfindall)
+disp(handles.comPort);
+handles.serial = serial(handles.comPort,'BaudRate',115200);
+fopen(handles.serial)
+guidata(hObject, handles);
+numberOfPlots = 4;
+% Set axes
+time = 0;
+voltage = 0;
+axes(handles.axes1);
+plotVec = zeros(1,numberOfPlots);
+for k = 1:numberOfPlots
+    plotVec(k) = plot(eval(['handles.axes' int2str(k)]),time,voltage);
+end
+
+% plotHandle = plot(time,voltage);
+% ylim(handles.axes1,[0 1023]);
+% hold on;
+% plotHandle2 = plot(handles.axes2,time,voltage);
+% ylim(handles.axes2,[0 1023]);
+% hold on;
+
+numberOfValue = 1000;
+valueVec = zeros(numberOfPlots,numberOfValue);
+temp = 0;
+while handles.running
+    try
+        temp = fscanf(handles.serial,'%f');
+        
+    end
+    if isnumeric(temp) && length(temp) == numberOfPlots
+        %temp = temp + valueVec(:,end);
+        valueVec = fliplr(circshift(fliplr(valueVec),1,2));
+        valueVec(:,end) = temp;
+        hold on;
+        for k = 1:numberOfPlots
+             set(plotVec(k),'YData',valueVec(k,:),'XData',1:numberOfValue);
+        end
+
+        drawnow;
+    end 
+end   
+disp('closing')
+fclose(handles.serial)
+delete(handles.serial)
+clear handles.serial
+guidata(hObject, handles);
+
+
+% --- Executes on selection change in popupmenu1.
+function popupmenu1_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu1
+str = get(hObject, 'String');
+ind = get(hObject, 'Value');
+handles.comPort = str(ind);
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+str = get(hObject, 'String');
+ind = get(hObject, 'Value');
+handles.comPort = str(ind);
+guidata(hObject, handles);
+
+
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+close force all;
+delete(instrfindall);
+delete(hObject);
+
+
+% --- Executes on slider movement.
+function slider1_Callback(hObject, eventdata, handles)
+% hObject    handle to slider1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+value = get(hObject,'Value');
+handles.kp = value;
+set(handles.kp_text,'String',value);
+guidata(hObject, handles);
+sendPID(handles);
+
+function sendPID(handles)
+value = [handles.kp handles.ki handles.kd];
+frac = floor(value);
+dec = floor(100*(value - frac));
+flushinput(handles.serial)
+str = 'a';
+for k = 1:3
+    tmp = sprintf(' %d %d',frac(k),dec(k));
+    str = strcat(str,tmp);
+    
+end
+disp(str);
+fwrite(handles.serial,str);
+
+
+% --- Executes during object creation, after setting all properties.
+function slider1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to slider1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+% --- Executes on slider movement.
+function slider9_Callback(hObject, eventdata, handles)
+value = get(hObject,'Value');
+handles.ki = value;
+set(handles.ki_text,'String',value);
+guidata(hObject, handles);
+sendPID(handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function slider9_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to slider9 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on slider movement.
+function slider10_Callback(hObject, eventdata, handles)
+value = get(hObject,'Value');
+handles.kd = value;
+set(handles.kd_text,'String',value);
+guidata(hObject, handles);
+sendPID(handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function slider10_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to slider10 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
